@@ -9,7 +9,8 @@
 #3. Testing becomes more complex as we have to test methods that are not relevant to certain payment processors.
 
 #Solution:
-
+#1. We create a subclass for PaymentProcessor and inherit its properties. e.g., PaymentProcessor_SMSMAUTH
+#2. Simply make a new class to handle SMS AUthorisation
 from abc import ABC, abstractmethod
 
 
