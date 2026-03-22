@@ -4,10 +4,10 @@ class TicTacToe:
     Works fine for 3x3, but NOT designed for NxN or future extensions.
     """
 
-    def __init__(self):
-        self.board = [[None, None, None],
-                      [None, None, None],
-                      [None, None, None]]
+    def __init__(self, board_size: int, win_condition: int):
+        self.board_size = board_size
+        self.win_condition = win_condition
+        self.board = [[None] * board_size for _ in range(board_size)]
         self.current_player = "X"
         self.game_over = False
         self.winner = None
@@ -17,7 +17,7 @@ class TicTacToe:
             print("Game is already over!")
             return False
 
-        if row < 0 or row > 2 or col < 0 or col > 2:
+        if row < 0 or row >= self.board_size or col < 0 or col >= self.board_size:
             print("Invalid position!")
             return False
 
@@ -39,24 +39,43 @@ class TicTacToe:
         return True
 
     def _check_winner(self):
-        b = self.board
         p = self.current_player
+        b = self.board
+        n = self.board_size
+        wc = self.win_condition
+
+        def count_consecutive(cells):
+            count = 0
+            for cell in cells:
+                if cell == p:
+                    count += 1
+                    if count >= wc:
+                        return True
+                else:
+                    count = 0
+            return False
 
         # Check rows
-        for row in range(3):
-            if b[row][0] == p and b[row][1] == p and b[row][2] == p:
+        for row in range(n):
+            if count_consecutive(b[row]):
                 return True
 
         # Check columns
-        for col in range(3):
-            if b[0][col] == p and b[1][col] == p and b[2][col] == p:
+        for col in range(n):
+            if count_consecutive(b[row][col] for row in range(n)):
                 return True
 
-        # Check diagonals
-        if b[0][0] == p and b[1][1] == p and b[2][2] == p:
-            return True
-        if b[0][2] == p and b[1][1] == p and b[2][0] == p:
-            return True
+        # Check top-left to bottom-right diagonals
+        for start in range(-(n - 1), n):
+            diagonal = [b[r][r - start] for r in range(n) if 0 <= r - start < n]
+            if count_consecutive(diagonal):
+                return True
+
+        # Check top-right to bottom-left diagonals
+        for start in range(0, 2 * n - 1):
+            diagonal = [b[r][start - r] for r in range(n) if 0 <= start - r < n]
+            if count_consecutive(diagonal):
+                return True
 
         return False
 
@@ -83,7 +102,7 @@ class TicTacToe:
 
 
 if __name__ == "__main__":
-    game = TicTacToe()
+    game = TicTacToe(board_size=3, win_condition=3)
     game.display()
 
     # Example game

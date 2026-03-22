@@ -10,107 +10,116 @@ Current features:
 - Different spot sizes (small, medium, large)
 - Entry/exit tracking
 """
+
+# Things missing: 
+# 1. All Vehicles are in one Dict and so layer of abstraction bw them.
+
 import time
-
-
+from spots import ParkingSpot
+from pricing import PricingStrategy, HourlyPricing
+from vehicles import Vehicle, Motorcycle, Truck, Car
+from typing import Optional
 class ParkingLot:
     """
     A parking lot that handles everything in one class.
     Works, but adding new features will be painful.
     """
 
-    def __init__(self, small_spots, medium_spots, large_spots):
+    def __init__(self, small_spots, medium_spots, large_spots, pricing_strategy: Optional[PricingStrategy] = None):
         self.spots = {}
         spot_id = 1
+        self.vehicle_spot_map = {}
+
         for _ in range(small_spots):
-            self.spots[spot_id] = {"size": "small", "vehicle": None, "entry_time": None}
+            self.spots[spot_id] = ParkingSpot(spot_id=spot_id, size='small')
             spot_id += 1
+
         for _ in range(medium_spots):
-            self.spots[spot_id] = {"size": "medium", "vehicle": None, "entry_time": None}
+            self.spots[spot_id] = ParkingSpot(spot_id=spot_id, size='medium')
             spot_id += 1
+
         for _ in range(large_spots):
-            self.spots[spot_id] = {"size": "large", "vehicle": None, "entry_time": None}
+            self.spots[spot_id] = ParkingSpot(spot_id=spot_id, size='large')
             spot_id += 1
 
-        self.vehicle_spot_map = {}  # license_plate -> spot_id
-        self.rate_per_hour = 2.0  # flat rate
+        self.pricing_strategy = pricing_strategy or HourlyPricing(rate_per_hour=2.0)
 
-    def park_vehicle(self, license_plate, vehicle_type):
+    def set_pricing_strategy(self, pricing_strategy):
+        self.pricing_strategy = pricing_strategy
+
+
+    def park_vehicle(self, vehicle: Vehicle):
         """
         Park a vehicle. Returns spot_id if successful, None if lot is full.
-        vehicle_type: 'motorcycle', 'car', 'truck'
         """
-        if license_plate in self.vehicle_spot_map:
-            return None  # Already parked
 
-        # Determine which spot sizes this vehicle can use
-        if vehicle_type == "motorcycle":
-            allowed_sizes = ["small", "medium", "large"]
-        elif vehicle_type == "car":
-            allowed_sizes = ["medium", "large"]
-        elif vehicle_type == "truck":
-            allowed_sizes = ["large"]
-        else:
-            return None  # Unknown vehicle type
-
-        # Find first available spot of allowed size (prefer smallest fit)
+        if vehicle.license_plate in self.vehicle_spot_map:
+            return None
+        
         for spot_id, spot in self.spots.items():
-            if spot["vehicle"] is None and spot["size"] in allowed_sizes:
-                spot["vehicle"] = {
-                    "license_plate": license_plate,
-                    "vehicle_type": vehicle_type,
-                }
-                spot["entry_time"] = time.time()
-                self.vehicle_spot_map[license_plate] = spot_id
+            if spot.is_available() and spot.size in vehicle.allowed_spot_sizes:
+                spot.park(vehicle)
+                self.vehicle_spot_map[vehicle.license_plate] = spot_id
                 return spot_id
+            
+        return None
 
-        return None  # No spot available
-
-    def remove_vehicle(self, license_plate):
+    def remove_vehicle(self, license_plate: Vehicle):
         """
         Remove a vehicle and calculate the fee.
         Returns (spot_id, fee) or None if vehicle not found.
         """
+
         if license_plate not in self.vehicle_spot_map:
             return None
-
+        
         spot_id = self.vehicle_spot_map[license_plate]
         spot = self.spots[spot_id]
-
-        # Calculate fee
-        hours = (time.time() - spot["entry_time"]) / 3600
+        hours = (time.time() - spot.entry_time) / 3600
         hours = max(1, round(hours))  # Minimum 1 hour
-        fee = hours * self.rate_per_hour
-
-        # Clear the spot
-        spot["vehicle"] = None
-        spot["entry_time"] = None
+        spot.remove()
         del self.vehicle_spot_map[license_plate]
+        fee = self.pricing_strategy.calculate_fee(hours_parked=hours)
 
-        return spot_id, fee
+        return {"license_plate": license_plate, "spot_id": spot_id, "fee": fee}
+
 
     def get_available_spots(self):
         """Returns count of available spots by size."""
         counts = {"small": 0, "medium": 0, "large": 0}
         for spot in self.spots.values():
-            if spot["vehicle"] is None:
-                counts[spot["size"]] += 1
+            if spot.is_available():
+                counts[spot.size] += 1
         return counts
 
     def is_full(self):
         """Check if all spots are occupied."""
-        return all(spot["vehicle"] is not None for spot in self.spots.values())
+        return all(not spot.is_available() for spot in self.spots.values())
 
     def get_vehicle_info(self, license_plate):
         """Get info about a parked vehicle."""
         if license_plate not in self.vehicle_spot_map:
             return None
+        
         spot_id = self.vehicle_spot_map[license_plate]
         spot = self.spots[spot_id]
+        
         return {
             "license_plate": license_plate,
-            "vehicle_type": spot["vehicle"]["vehicle_type"],
+            "vehicle_type": spot._vehicle.__class__.__name__.lower(),
             "spot_id": spot_id,
-            "spot_size": spot["size"],
-            "entry_time": spot["entry_time"],
+            "spot_size": spot.size,
+            "entry_time": spot.entry_time,
         }
+
+
+# Bad Design I found
+# 1. There are 4 things the base class is doing: park_vehicle, remove_vehicle, get_available_spots, get_available_spots, get_vehicle_info, is_full.
+
+# Solution I did
+# 1. We did not make subclasses for the class methods but instead extracted from Vehicle, ParkingSpot, PRicingStrategy
+# You didn't make subclasses of ParkingLot. What you actually did:
+
+# Extracted Vehicle hierarchy — vehicles know their own rules
+# Extracted ParkingSpot — spots manage their own state
+# Extracted PricingStrategy — pricing is swappable, not hardcoded
