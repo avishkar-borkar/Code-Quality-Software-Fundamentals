@@ -57,18 +57,18 @@ class TestLibraryItemClasses:
 class TestItemCopy:
 
     def test_copy_class_exists(self):
-        from copy import ItemCopy
+        from item_copy import ItemCopy
         assert ItemCopy is not None
 
     def test_copy_is_available_when_created(self):
-        from copy import ItemCopy
+        from item_copy import ItemCopy
         from items import Book
         book = Book("B1", "Clean Code")
         copy = ItemCopy(copy_id=1, item=book)
         assert copy.is_available() is True
 
     def test_copy_not_available_after_checkout(self):
-        from copy import ItemCopy
+        from item_copy import ItemCopy
         from items import Book
         book = Book("B1", "Clean Code")
         copy = ItemCopy(copy_id=1, item=book)
@@ -76,7 +76,7 @@ class TestItemCopy:
         assert copy.is_available() is False
 
     def test_copy_available_after_return(self):
-        from copy import ItemCopy
+        from item_copy import ItemCopy
         from items import Book
         book = Book("B1", "Clean Code")
         copy = ItemCopy(copy_id=1, item=book)
@@ -85,7 +85,7 @@ class TestItemCopy:
         assert copy.is_available() is True
 
     def test_copy_tracks_due_date(self):
-        from copy import ItemCopy
+        from item_copy import ItemCopy
         from items import Book
         book = Book("B1", "Clean Code")
         copy = ItemCopy(copy_id=1, item=book)
@@ -94,7 +94,7 @@ class TestItemCopy:
         assert copy.due_date == expected
 
     def test_copy_tracks_member(self):
-        from copy import ItemCopy
+        from item_copy import ItemCopy
         from items import Magazine
         mag = Magazine("M1", "Nature")
         copy = ItemCopy(copy_id=1, item=mag)
@@ -102,7 +102,7 @@ class TestItemCopy:
         assert copy.checked_out_by == "bob"
 
     def test_copy_cannot_double_checkout(self):
-        from copy import ItemCopy
+        from item_copy import ItemCopy
         from items import DVD
         dvd = DVD("D1", "Inception")
         copy = ItemCopy(copy_id=1, item=dvd)
@@ -111,7 +111,7 @@ class TestItemCopy:
             copy.checkout(member_id="bob")
 
     def test_copy_cannot_return_when_available(self):
-        from copy import ItemCopy
+        from item_copy import ItemCopy
         from items import Book
         book = Book("B1", "Clean Code")
         copy = ItemCopy(copy_id=1, item=book)
