@@ -202,3 +202,43 @@ class Library:
     
 # This class Library has 5 responsibilities !
 # Solution: Make individual classes and file for extracting logic and refactoring the Library class.
+
+
+# Expected LEarning Outcomes
+
+# Core Learnings from Assignment 3.1:
+
+# Abstraction & Type Hierarchy
+
+# LibraryItem is abstract — you never instantiate it directly
+# Subclasses (Book, Magazine, DVD) define their own rules via @property loan_period_days
+# The system handles all types uniformly without if item_type == "book" checks
+# Composition Over State Duplication
+
+# ItemCopy wraps a LibraryItem — doesn't duplicate its data
+# ItemCopy manages its own state (_checked_out_by, _due_date)
+# Library stores ItemCopy objects, not raw dicts
+# Each layer of abstraction has ONE job
+# Strategy Pattern (Swappable Behavior)
+
+# LateFeeStrategy lets you change fee calculation at runtime
+# Library accepts a strategy as a parameter, not hardcoded
+# You can swap FlatDailyFee ↔ TieredFee ↔ NoFee without touching Library code
+# This is Dependency Injection
+# Separation of Concerns
+
+# LibraryItem — knows its loan period
+# ItemCopy — tracks checkout state
+# LateFeeStrategy — calculates fees
+# Library — orchestrates everything
+# Each class has ONE reason to change
+# Polymorphism in Action
+
+# Library.add_item() accepts any LibraryItem subclass
+# No type checking needed — polymorphism handles it
+# Observers work the same way (next assignment)
+# Object Interaction Pattern
+
+# Objects ask each other to do things: copy.checkout(member_id) vs doing it themselves
+# Objects don't reach into each other's state: item.checked_out_by (property) vs item._checked_out_by (private)
+# This is encapsulation
