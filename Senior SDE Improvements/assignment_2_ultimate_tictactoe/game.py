@@ -90,3 +90,7 @@ class TicTacToe:
         for row in self.board:
             print(" | ".join(symbols[cell] for cell in row))
         print()
+
+# Base class that represents a 3x3 TicTacToe - Standard.
+# Has methods to 1. Make board, 2. Make Moves, 3. Check if Board full, 4. Check Winner, 5. Reset Board
+# So there is no need to rewrite for a bigger board, We will inbherit from baseclass to use.

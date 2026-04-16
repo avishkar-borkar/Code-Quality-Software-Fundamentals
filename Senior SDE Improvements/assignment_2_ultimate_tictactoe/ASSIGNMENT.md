@@ -1,82 +1,186 @@
-# Assignment 2: Ultimate Tic-Tac-Toe (Inheritance & Abstraction)
+# Assignment 2: Ultimate Tic-Tac-Toe — Interview Prep
 
-## Difficulty: ★★★☆☆
-## Focus: Inheritance, Method Overriding, Abstraction, Reusing Base Class Logic
-
----
-
-## Background
-
-This is the exact type of problem asked in SDE2 interviews. You're given a working `TicTacToe` base class. Your job is to **subclass** it to implement Ultimate Tic-Tac-Toe — a game where each cell of a 3x3 grid contains an entire Tic-Tac-Toe game inside it.
-
-**Rules:** https://www.thegamegal.com/2018/09/01/ultimate-tic-tac-toe/
+## Difficulty: ★★★★☆
+## Focus: **Inheritance**, **Composition**, **Reuse over Rewrite**, **Abstraction**
 
 ---
 
-## Files
+## THE INTERVIEW CONTEXT
 
-| File | What To Do |
-|------|-----------|
-| `game.py` | Base `TicTacToe` class. You may modify it if needed, but the goal is to **extend**, not rewrite. |
-| `ultimate.py` | **Create this file.** Your `UltimateTicTacToe` class goes here. |
-| `test_game.py` | Test suite. **Do NOT modify.** All tests must pass. |
+You already attempted this problem in an interview. The feedback was:
+- You modified the base class instead of **subclassing** it
+- You did not **reuse** existing logic (win detection, move validation, etc.)
+- You did not create separate files — everything was in one place
 
----
-
-## Rules of Ultimate Tic-Tac-Toe
-
-1. The board is a **3x3 grid of sub-boards**, each sub-board is a **3x3 Tic-Tac-Toe game**.
-2. The **first move** can be in ANY sub-board, at any position.
-3. When a player places a mark at local position `(r, c)` within a sub-board, the **next player MUST play in sub-board `(r, c)`** on the outer grid.
-4. If the target sub-board is **already won or full**, the next player may play in **ANY available sub-board**.
-5. A player **wins a sub-board** by getting 3 in a row within that sub-board.
-6. A player **wins the game** by winning **3 sub-boards in a row** on the outer grid (row, column, or diagonal).
-7. If all sub-boards are decided (won or drawn) and no one has 3 outer in a row, it's a **draw**.
+**This assignment simulates the same problem.** The goal is to practice doing it the RIGHT way this time.
 
 ---
 
-## Requirements
+## STRICT RULES (These mirror the interview expectations)
 
-### Your `UltimateTicTacToe` class MUST:
+### ❌ Do NOT:
+1. **Do NOT modify `game.py`** — the base `TicTacToe` class is locked. Treat it as a 3rd-party library you cannot change.
+2. **Do NOT rewrite logic that already exists** — no new win-checking code, no new board-full check, no new switch-player logic.
+3. **Do NOT put everything in one file** — you must separate concerns across multiple files.
+4. **Do NOT copy-paste from `game.py`** — if you need the logic, use inheritance or composition to reach it.
 
-1. **Inherit from `TicTacToe`** (the class in `game.py`).
-
-2. **Override `make_move`** with signature: `make_move(outer_row, outer_col, inner_row, inner_col)`
-   - Validates outer position (0-2) and inner position (0-2)
-   - Enforces the "sent to sub-board" rule (rule 3 above)
-   - Enforces the "free choice when target is won/full" rule (rule 4)
-   - Rejects moves in won or full sub-boards
-   - Rejects moves after game is over
-   - Returns `True` for valid moves, `False` for invalid
-
-3. **Use `TicTacToe` instances as sub-boards.** Each of the 9 sub-boards should be a `TicTacToe` object. Reuse the base class — don't rewrite win-checking logic.
-
-4. **Implement these query methods:**
-   - `get_sub_board_cell(outer_row, outer_col, inner_row, inner_col)` → `"X"`, `"O"`, or `None`
-   - `get_sub_board_winner(outer_row, outer_col)` → `"X"`, `"O"`, or `None`
-   - `get_active_sub_board()` → `(row, col)` tuple or `None` (None = free choice)
-
-5. **Track outer game state** — use the base `TicTacToe`'s properties (`game_over`, `winner`, `current_player`) for the overall game state.
+### ✅ You MUST:
+1. **Subclass** `TicTacToe` for your `UltimateTicTacToe` class.
+2. **Compose** the outer board using a `TicTacToe` instance (since the outer board is itself a 3x3 tic-tac-toe of sub-board winners).
+3. **Use a 3x3 grid of `TicTacToe` instances** for the sub-boards.
+4. **Reuse** the base class's `_check_winner`, `_is_board_full`, `_switch_player`, and `make_move` logic wherever possible.
+5. **Override** only where necessary — `make_move` gets a new signature, everything else should come "for free" from the base.
 
 ---
 
-## Design Decisions You Need to Make
+## FILE STRUCTURE (REQUIRED)
 
-These are the things an interviewer would evaluate:
+| File | Purpose | Status |
+|------|---------|--------|
+| `game.py` | Base `TicTacToe` class | **LOCKED — do not modify** |
+| `ultimate.py` | `UltimateTicTacToe` class (subclass of `TicTacToe`) | **Create this** |
+| `board_manager.py` | `SubBoardManager` — manages the 9 sub-boards (composition) | **Create this** |
+| `rules.py` | `MoveValidator` — encapsulates move legality rules (sending, active board, etc.) | **Create this** |
+| `test_game.py` | Test suite | **DO NOT MODIFY** |
 
-- **What to inherit vs. what to override?** The base class has `make_move`, `_check_winner`, `_switch_player`, etc. Which do you reuse? Which do you override?
-- **How to compose sub-boards?** Each sub-board IS a TicTacToe. How do you store and interact with them?
-- **Where does the "sending" logic live?** This is new behavior unique to Ultimate. How do you cleanly add it?
-- **How to track outer-board wins?** You have 9 sub-boards with winners. The outer game is itself a tic-tac-toe of winners. Can you reuse TicTacToe for this too?
+You are expected to split responsibilities across these files. Putting everything in `ultimate.py` will fail the review — same mistake as last time.
 
 ---
 
-## Hints
+## PART 1: `board_manager.py` — SubBoardManager (Composition)
 
-1. Your class will likely have a **3x3 grid of `TicTacToe` objects** for the sub-boards.
-2. Consider using **another `TicTacToe` instance** to track the outer game (which sub-boards are won by whom).
-3. The base class's `current_player` and `game_over` should be used for the OUTER game state. Don't create parallel state.
-4. When a sub-board is won, "place" the winner's mark on the outer board.
+This class owns the 9 sub-boards and knows how to query/update them.
+
+### Responsibilities:
+- Store a 3x3 grid of `TicTacToe` instances (one per sub-board)
+- Expose methods to:
+  - `get_sub_board(outer_row, outer_col)` → returns the `TicTacToe` instance
+  - `get_cell(outer_row, outer_col, inner_row, inner_col)` → "X", "O", or None
+  - `get_sub_board_winner(outer_row, outer_col)` → "X", "O", or None
+  - `is_sub_board_full(outer_row, outer_col)` → bool
+  - `is_sub_board_decided(outer_row, outer_col)` → bool (won OR full)
+
+### Why this matters:
+- **Single Responsibility Principle** — `UltimateTicTacToe` should not directly poke into sub-boards. That's this class's job.
+- Makes the outer game code readable: `self.sub_boards.get_sub_board_winner(r, c)` vs. raw 2D indexing.
+
+---
+
+## PART 2: `rules.py` — MoveValidator
+
+This class encapsulates the **rules** of Ultimate TicTacToe (the sending logic, free choice, etc.).
+
+### Responsibilities:
+- `is_valid_move(active_sub_board, outer_row, outer_col, sub_boards)` → bool
+  - If `active_sub_board` is set: the move's outer position must match
+  - If `active_sub_board` is None (free choice): any non-decided sub-board is fine
+  - The specific sub-board must not be won or full
+
+- `compute_next_active_sub_board(inner_row, inner_col, sub_boards)` → (row, col) or None
+  - After a move, the next active sub-board is `(inner_row, inner_col)`
+  - Unless that sub-board is won or full → return None (free choice)
+
+### Why this matters:
+- **Rules are separate from game logic** — you can change rules without touching the game class.
+- This is where you'd swap in variants (e.g., "anarchy mode" where there's no sending rule).
+
+---
+
+## PART 3: `ultimate.py` — UltimateTicTacToe
+
+This class subclasses `TicTacToe` and orchestrates the game.
+
+### Requirements:
+
+1. **Must subclass `TicTacToe`.** Pass `board_size=3, win_condition=3` to super (the **outer** board is itself a tic-tac-toe of sub-board winners).
+
+2. **Compose with `SubBoardManager`** — don't store sub-boards as raw 2D lists.
+
+3. **Use `MoveValidator`** — don't inline rule checks in `make_move`.
+
+4. **Override `make_move`** with signature:
+   ```python
+   def make_move(self, outer_row, outer_col, inner_row, inner_col) -> bool
+   ```
+
+5. **When a sub-board is won:** call `super().make_move(outer_row, outer_col)` to record the winner on the **outer** board. This way, the base class's `_check_winner` automatically detects if the OUTER game is won.
+   - This is the key insight: the outer game state IS a tic-tac-toe, and you already have that logic!
+
+6. **Required query methods:**
+   - `get_sub_board_cell(outer_row, outer_col, inner_row, inner_col)` → "X", "O", or None
+   - `get_sub_board_winner(outer_row, outer_col)` → "X", "O", or None
+   - `get_active_sub_board()` → (row, col) tuple or None
+
+7. **Inherited properties** (from base class — do NOT redefine):
+   - `self.current_player`
+   - `self.game_over`
+   - `self.winner`
+
+---
+
+## THE KEY INSIGHT (This is what the interviewer is looking for)
+
+The OUTER board in Ultimate TicTacToe is itself a 3x3 tic-tac-toe — where each "cell" is the winner of the corresponding sub-board.
+
+**So:**
+- `UltimateTicTacToe` IS-A `TicTacToe` (for the outer board)
+- `UltimateTicTacToe` HAS 9 `TicTacToe` instances (for the sub-boards, via `SubBoardManager`)
+
+When a sub-board is won:
+```python
+# Don't write new logic to check if the outer game is over!
+# Just call the base class and let it do the work.
+super().make_move(outer_row, outer_col)  # base class updates self.board, self.winner, self.game_over
+```
+
+If you find yourself writing `for i in range(3): for j in range(3): check 3 in a row...` — **STOP**. You're rewriting base class logic. Use `super()`.
+
+---
+
+## COMMON MISTAKES (Do not repeat these)
+
+| Mistake | Why It Fails Review |
+|---------|---------------------|
+| Modifying `game.py` to accept 4 parameters | You were asked to EXTEND, not rewrite |
+| Copying `_check_winner` into `ultimate.py` | Violates DRY, misses inheritance |
+| Storing sub-boards as `[[None]*9]*9` raw grid | Misses composition opportunity |
+| Putting all rules inline in `make_move` | Violates Single Responsibility |
+| Creating parallel `self.x_current_player` instead of reusing `self.current_player` | Duplicates state |
+| Everything in one file | Fails separation of concerns review |
+
+---
+
+## STEP-BY-STEP APPROACH (Recommended Order)
+
+1. **Read `game.py` carefully.** Note what you get "for free" via inheritance.
+2. **Read `test_game.py`.** Understand the exact interface expected.
+3. **Write `board_manager.py`** — get sub-board storage working.
+4. **Write `rules.py`** — encode the sending rules.
+5. **Write `ultimate.py`:**
+   - `__init__` calls `super().__init__(3, 3)` and creates a `SubBoardManager` + `MoveValidator`.
+   - `make_move` delegates validation to `MoveValidator`, plays the move on the right sub-board, and if won, calls `super().make_move(outer_row, outer_col)`.
+6. **Run tests incrementally:**
+   ```bash
+   pytest test_game.py::TestUltimateTicTacToeInheritance -v
+   pytest test_game.py::TestBasicMoves -v
+   pytest test_game.py::TestSendingLogic -v
+   pytest test_game.py::TestSubBoardWinning -v
+   pytest test_game.py -v
+   ```
+
+---
+
+## EVALUATION CRITERIA (This is exactly what the interviewer scores on)
+
+| Criteria | What They Look For |
+|----------|-------------------|
+| **Did you subclass?** | Is `UltimateTicTacToe(TicTacToe)`, or did you write a standalone class? |
+| **Did you reuse?** | Are you calling `super().make_move()` for outer win detection? |
+| **Did you separate concerns?** | Are rules in `rules.py`, sub-boards in `board_manager.py`, orchestration in `ultimate.py`? |
+| **Did you avoid modifying the base?** | `game.py` must be byte-identical to the original. |
+| **Did you avoid duplicating logic?** | No new `_check_winner`, no new `_is_board_full`. |
+| **Is the code clean?** | Would a reviewer say "yes, this is how I'd write it"? |
+| **Does it pass tests?** | All of `test_game.py` must be green. |
 
 ---
 
@@ -89,25 +193,4 @@ pytest test_game.py -v
 
 ---
 
-## Evaluation Criteria
-
-| Criteria | What I'm Looking For |
-|----------|---------------------|
-| **Inheritance** | Did you actually subclass TicTacToe, or did you just write a new class? |
-| **Reuse** | Are you reusing base class win-checking for sub-boards and outer board? |
-| **Abstraction** | Is the boundary between "outer game logic" and "sub-board logic" clean? |
-| **Encapsulation** | Is internal state (sub-boards, active board tracking) properly hidden behind methods? |
-| **No duplication** | Did you avoid rewriting win-check / board-full logic that's already in the base class? |
-| **Correctness** | All tests pass |
-
----
-
-## Get Started
-
-1. Read `game.py` — understand the base class API
-2. Read `test_game.py` — understand what interface is expected
-3. Create `ultimate.py` with your `UltimateTicTacToe` class
-4. Run tests incrementally — start with the inheritance tests, then basic moves, then sending logic
-5. Run `pytest test_game.py -v` and get everything green
-
-Good luck — this is your interview redemption round.
+Good luck. This time, **subclass**, **reuse**, **separate**.
